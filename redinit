@@ -9,6 +9,12 @@ app_name = "Demo"
 app_author="[REDACTED]"
 """ > $(pwd)/package.info
 
+echo """
+DEPS := local:../os/shared:../os/shared/libshared.a 
+    
+FS_PATH ?= ../os/fs/redos/user/\$(PKG)
+""" > $(pwd)/config.mk
+
 mkdir -p $(pwd)/resources
 
 echo "[REDACTED] project created"

@@ -34,7 +34,7 @@ else
 			fw:CoreVideo \
 			fw:CoreFoundation 
     else
-        # Windows dependencies
+        # Windows & linux dependencies
     endif
 endif
 
