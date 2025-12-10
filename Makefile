@@ -15,10 +15,12 @@ OUT ?= $(PKG)/$(EXEC_NAME).elf
 
 SYSNAME := $(shell uname -s)
 
+LDFLAGS := -Wl,--start-group
+
 ifeq ($(ARCH), aarch64-none-elf-)
 	SYSTEM := redacted
 	CFLAGS += -nostdlib -ffreestanding
-	LDFLAGS := -Wl,-emain
+	LDFLAGS += -Wl,-emain 
 else
 	SYSTEM := native
     DEPS += \
