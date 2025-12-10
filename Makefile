@@ -72,13 +72,14 @@ compile:
 run: all
 ifeq ($(ARCH), aarch64-none-elf-)
 	cp -r $(PKG) $(FS_PATH)
-	$(MAKE) -C ../os run
+	$(MAKE) -C $(OS_DIR) run
 else
 	$(OUT)
 endif
 
 clean:
 	rm $(OUT)
+	rm -r $(FS_PATH)
 	rm -r $(EXEC_NAME).red
 
 cross:

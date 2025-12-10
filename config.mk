@@ -1,3 +1,5 @@
 DEPS := local:../os/shared:../os/shared/libshared.a
     
-FS_PATH ?= ../os/fs/redos/user/\$(PKG)
+OS_DIR := ../os
+
+FS_PATH ?= $(OS_DIR)/fs/redos/user/$(PKG)
