@@ -6,7 +6,7 @@ else
     CONFIG_FILE="$HOME/.bashrc"
 fi
 
-echo "export REDMAKE=$(pwd)/Makefile" >> "$CONFIG_FILE"
+echo "export REDBUILD=$(pwd)" >> "$CONFIG_FILE"
 echo "export PATH=\$PATH:$(pwd)" >> "$CONFIG_FILE"
 
 source $CONFIG_FILE
