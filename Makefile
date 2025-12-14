@@ -26,7 +26,6 @@ else
     DEPS += \
     sys:c \
 	local:../redxlib:../redxlib/redxlib.a \
-	sys:m \
 	local:../raylib/src/:../raylib/src/libraylib.a
 	
 	ifeq ($(SYSNAME),Darwin)
@@ -34,9 +33,17 @@ else
 			fw:Cocoa \
 			fw:IOKit \
 			fw:CoreVideo \
-			fw:CoreFoundation 
+			fw:CoreFoundation \ 
+			sys:m
+	elif ($(OS),Windows_NT)
+        # Windows dependencies
+        DEPS += sys:opengl32 \
+        		sys:gdi32 \
+          		sys:winmm \ 
+            	sys:shell32 \
+                sys:User32
     else
-        # Windows & linux dependencies
+        DEPS += sys:m
     endif
 endif
 
@@ -68,7 +75,7 @@ prepare:
 
 compile:
 	# echo "$(SYSTEM)" > buildreport
-	$(CC) $(LDFLAGS) $(CFLAGS) -I. $(INCLUDES) $(shell find . -name '*.c') $(LINKS) -o $(OUT)
+	$(CC) $(LDFLAGS) $(CFLAGS) -I. $(INCLUDES) $(shell find . -name "*.c") $(LINKS) -o $(OUT)
 	chmod +x $(OUT)
 
 run: all
@@ -86,7 +93,7 @@ clean:
 	rm -r $(EXEC_NAME).red
 
 cross:
-	$(MAKE) -f $(REDBUILD)/Makefile -C $(shell pwd) ARCH=''
+	$(MAKE) -f $(REDBUILD)/Makefile -C $(shell pwd) ARCH=""
 # 	gdb -ex run $(OUT)
 	$(OUT)
 
