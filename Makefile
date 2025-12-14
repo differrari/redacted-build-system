@@ -40,6 +40,10 @@ else
           		sys:winmm \
             	sys:shell32 \
                 sys:User32
+        LDFLAGS := -fuse-ld=lld 
+        CC := clang
+        CCX := clang
+        AR := llvm-ar
     else
     	LDFLAGS := -Wl,--start-group
         DEPS += sys:m \
