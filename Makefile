@@ -13,6 +13,8 @@ EXEC_NAME ?= $(notdir $(CURDIR))
 PKG ?= $(EXEC_NAME).red
 OUT ?= $(PKG)/$(EXEC_NAME).elf
 
+SHOULD_RUN ?= true
+
 SYSNAME := $(shell uname -s)
 
 LDFLAGS := -Wl,--start-group
@@ -94,8 +96,13 @@ clean:
 
 cross:
 	$(MAKE) -f $(REDBUILD)/Makefile -C $(shell pwd) ARCH=""
-# 	gdb -ex run $(OUT)
-	$(OUT)
+	@if [ "$(SHOULD_RUN)" = true ]; then\
+	    if [ "$(DEBUG)" = true ]; then\
+			gdb -ex run $(OUT);\
+		else\
+	        $(OUT);\
+		fi;\
+	fi
 
 dump:
 	$(DUMP) -D $(OUT) > dump
