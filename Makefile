@@ -17,8 +17,6 @@ SHOULD_RUN ?= true
 
 SYSNAME := $(shell uname -s)
 
-LDFLAGS := -Wl,--start-group
-
 ifeq ($(ARCH), aarch64-none-elf-)
 	SYSTEM := redacted
 	CFLAGS += -nostdlib -ffreestanding
@@ -26,7 +24,6 @@ ifeq ($(ARCH), aarch64-none-elf-)
 else
 	SYSTEM := native
     DEPS += \
-    sys:c \
 	local:../redxlib:../redxlib/redxlib.a \
 	local:../raylib/src/:../raylib/src/libraylib.a
 	
@@ -35,17 +32,24 @@ else
 			fw:Cocoa \
 			fw:IOKit \
 			fw:CoreVideo \
-			fw:CoreFoundation \ 
-			sys:m
-	elif ($(OS),Windows_NT)
+			fw:CoreFoundation \
+			sys:m \
+			sys:c
+	else ifeq($(OS),Windows_NT)
         # Windows dependencies
         DEPS += sys:opengl32 \
         		sys:gdi32 \
-          		sys:winmm \ 
+          		sys:winmm \
             	sys:shell32 \
                 sys:User32
+        LDFLAGS := -fuse-ld=lld 
+        CC := clang
+        CCX := clang
+        AR := llvm-ar
     else
-        DEPS += sys:m
+    	LDFLAGS := -Wl,--start-group
+        DEPS += sys:m \
+        		sys:c
     endif
 endif
 
