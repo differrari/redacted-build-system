@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ccommands(){
-    bear -- make -f $REDBUILD/Makefile -B
+    CC=$(which aarch64-none-elf-gcc) CXX=(which aarch64-none-elf-g++) bear -- make -f $REDBUILD/Makefile -B
 }
 
 publish(){
