@@ -39,24 +39,25 @@ else
 			fw:CoreFoundation \
 			sys:m \
 			sys:c
-    else ifeq($(shell uname), Linux)
-    	SYSTEM := linux
-    	LDFLAGS := -Wl,--start-group
-        DEPS += sys:m \
-        		sys:c
-	else ifeq($(OS),Windows_NT)
+	endif 
+   	ifeq ($(shell uname), Linux)
+   		SYSTEM := linux
+   		LDFLAGS := -Wl,--start-group
+       	DEPS += sys:m \
+       		sys:c
+	endif 
+	ifeq ($(OS),Windows_NT)
 		SYSTEM := windows
-        # Windows dependencies
-        DEPS += sys:opengl32 \
-        		sys:gdi32 \
-          		sys:winmm \
-            	sys:shell32 \
-                sys:User32
-        LDFLAGS := -fuse-ld=lld 
-        CC := clang
-        CCX := clang
-        AR := llvm-ar
-    endif
+       	DEPS += sys:opengl32 \
+       		sys:gdi32 \
+         		sys:winmm \
+           	sys:shell32 \
+               sys:User32
+       	LDFLAGS := -fuse-ld=lld 
+       	CC := clang
+       	CCX := clang
+       	AR := llvm-ar
+   	endif
 endif
 
 get_type = $(word 1,$(subst :, ,$1))
