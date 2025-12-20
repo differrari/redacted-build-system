@@ -2,6 +2,7 @@
 #include "std/string.h"
 #include "std/memory.h"
 #include "data_struct/linked_list.h"
+#include "std/stringview.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,7 +17,7 @@ typedef enum { mac_os, linux_os, windows_os, redacted_os } os_name;
 const os_name os = linux_os;
 #elif _WIN32
 const os_name os = windows_os;
-#elif (__apple__)
+#elif (__APPLE__)
 const os_name os = mac_os;
 #else 
 const os_name os = redacted_os;
@@ -124,10 +125,9 @@ void common(){
     }
 
     include_self();
-    add_local_dependency("/home/di/os/shared", "/home/di/os/shared/libshared.a", "/home/di/os/", true);
-    add_local_dependency("/home/di/detour", "/home/di/detour/detour.a", "/home/di/detour/", true);
+    add_local_dependency("~/os/shared", "~/os/shared/libshared.a", "~/os/", true);
+    add_local_dependency("~/detour", "~/detour/detour.a", "~/detour/", true);
     
-    link_libs = string_from_literal("/home/di/os/shared/libshared.a");
     output = "output";
 }
 
@@ -142,18 +142,25 @@ void process_dep(void *data){
     if (!dep) return;
     
     if (dep->include && strlen(dep->include)){
-        string_concat_inplace(&includes, string_format("-I%s ",dep->include));
+        string s = string_replace_character(dep->include, '~', (char*)homedir);
+        string sf = string_format("-I%s ",s.data);
+        string_concat_inplace(&includes, sf);
+        string_free(s);
+        string_free(sf);
     } 
     if (dep->link && strlen(dep->link)){
         string l = {};
+        string s = string_replace_character(dep->link, '~', (char*)homedir);
         switch (dep->type) {
-            case dep_local: l = string_format(" %s", dep->link); break;
-            case dep_system: l = string_format(" -l%s",dep->link); break;
-            case dep_framework: l = string_format(" -framework %s",dep->link); break;
+            case dep_local: l = string_format(" %s", s.data); break;
+            case dep_system: l = string_format(" -l%s",s.data); break;
+            case dep_framework: l = string_format(" -framework %s",s.data); break;
         }
         if (l.data){
             string_concat_inplace(&link_libs, l);
+            string_free(l);
         }
+        string_free(s);
     } 
 }
 
@@ -181,7 +188,7 @@ void comp(){
     clinkedlist_for_each(comp_flags_list, process_comp_flags);
     clinkedlist_for_each(link_flags_list, process_link_flags);
     memset(buff, 0, BUF_SIZE);
-    string_format_buf(buff, BUF_SIZE, "%s %s %s %s %s %s -o %s", compiler, comp_flags.data, link_flags.data, includes.data ? includes.data : "",sources.data ? sources.data : "",link_libs.data ? link_libs.data : "", output);
+    string_format_buf(buff, BUF_SIZE, "%s %s %s %s %s %s -o %s", compiler, comp_flags.data ? comp_flags.data : "", link_flags.data ? link_flags.data : "", includes.data ? includes.data : "",sources.data ? sources.data : "",link_libs.data ? link_libs.data : "", output);
     printf("%s", buff);
     system(buff);
 }
@@ -190,12 +197,18 @@ void cross_mod(){
     common();
     add_system_lib("c");
     add_system_lib("m");
-    add_local_dependency("/home/di/raylib/src", "/home/di/raylib/src/libraylib.a", "", false);
-    add_local_dependency("/home/di/redxlib", "/home/di/redxlib/redxlib.a", "/home/di/os/", true);
+    add_local_dependency("~/raylib/src", "~/raylib/src/libraylib.a", "", false);
+    add_local_dependency("~/redxlib", "~/redxlib/redxlib.a", "~/os/", true);
     add_compilation_flag("CROSS");
     switch (os) {
         case linux_os: add_linker_flag("-Wl,--start-group"); break;
         case windows_os: add_linker_flag("-fuse-ld=lld"); break;
+        case mac_os: {
+            add_system_framework("Cocoa");
+            add_system_framework("IOKit");
+            add_system_framework("CoreVideo");
+            add_system_framework("CoreFoundation");
+        } break;
         default: break;
     }
     
