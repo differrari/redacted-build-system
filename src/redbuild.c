@@ -1,5 +1,6 @@
 #include "syscalls/syscalls.h"
 #include "std/string.h"
+#include "std/memory.h"
 #include "data_struct/linked_list.h"
 
 #include <stdlib.h>
@@ -11,6 +12,8 @@
 string link_libs;
 string sources;
 string includes;
+string comp_flags;
+string link_flags;
 char *output; 
 
 char *compiler = "";
@@ -20,6 +23,8 @@ const char *homedir;
 typedef enum { dep_local, dep_framework, dep_system } dependency_type;
 
 clinkedlist_t *sys_deps;
+clinkedlist_t *comp_flags_list;
+clinkedlist_t *link_flags_list;
 
 typedef struct {
     dependency_type type;
@@ -74,9 +79,19 @@ void add_system_framework(char *name){
     add_dependency(dep_framework, "", name, "", false);
 }
 
+void add_compilation_flag(char *name){
+    clinkedlist_push_front(comp_flags_list, name);
+}
+
+void add_linker_flag(char *name){
+    clinkedlist_push_front(link_flags_list, name);
+}
+
 void common(){
     find_files(".c",&sources);
     sys_deps = clinkedlist_create();
+    comp_flags_list = clinkedlist_create();
+    link_flags_list = clinkedlist_create();
 
     if ((homedir = getenv("HOME")) == NULL) {
         homedir = getpwuid(getuid())->pw_dir;
@@ -114,16 +129,33 @@ void process_dep(void *data){
     } 
 }
 
+void process_comp_flags(void *data){
+    char* flag = (char*)data;
+    if (!comp_flags.data) comp_flags = string_format(" -D%s",flag);
+    else string_concat_inplace(&comp_flags, string_format(" -D%s",flag));
+}
+
+void process_link_flags(void *data){
+    char* flag = (char*)data;
+    if (!link_flags.data) link_flags = string_format(" %s",flag);
+    else string_concat_inplace(&link_flags, string_format(" %s",flag));
+}
+
+#define BUF_SIZE 1024
+char buff[BUF_SIZE];
+
 void comp(){
     if (!strlen(compiler)){
         printf("ERROR: Specify a compiler");
         return;
     }
     clinkedlist_for_each(sys_deps, process_dep);
-    string s = string_format("%s %s %s %s -o %s",compiler, includes.data ? includes.data : "",sources.data ? sources.data : "",link_libs.data ? link_libs.data : "",output);
-    printf(s.data);
-    system(s.data);
-    string_free(s);
+    clinkedlist_for_each(comp_flags_list, process_comp_flags);
+    clinkedlist_for_each(link_flags_list, process_link_flags);
+    memset(buff, 0, BUF_SIZE);
+    string_format_buf(buff, BUF_SIZE, "%s %s %s %s %s %s -o %s", compiler, comp_flags.data, link_flags.data, includes.data ? includes.data : "",sources.data ? sources.data : "",link_libs.data ? link_libs.data : "", output);
+    printf("%s", buff);
+    system(buff);
 }
 
 void cross_mod(){
@@ -132,6 +164,13 @@ void cross_mod(){
     add_system_lib("m");
     add_local_dependency("/home/di/raylib/src", "/home/di/raylib/src/libraylib.a", "", false);
     add_local_dependency("/home/di/redxlib", "/home/di/redxlib/redxlib.a", "/home/di/os/", true);
+    add_compilation_flag("CROSS");
+    #ifdef __linux
+        add_linker_flag("-Wl,--start-group");
+    #elif _WIN32
+        add_linker_flag("-fuse-ld=lld");
+    #endif
+    
     compiler = "gcc";
     comp();
 }
@@ -139,6 +178,7 @@ void cross_mod(){
 void red_mod(){
     common();
     compiler = "aarch64-none-elf-gcc";
+    add_linker_flag("-Wl,-emain");
     comp();
 }
 
