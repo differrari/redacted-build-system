@@ -9,6 +9,18 @@
 #include <dirent.h>
 #include <pwd.h>
 
+typedef enum { mac_os, linux_os, windows_os, redacted_os } os_name;
+
+#if __linux
+const os_name os = linux_os;
+#elif _WIN32
+const os_name os = windows_os;
+#elif (__apple__)
+const os_name os = mac_os;
+#else 
+const os_name os = redacted_os;
+#endif
+
 string link_libs;
 string sources;
 string includes;
@@ -165,11 +177,11 @@ void cross_mod(){
     add_local_dependency("/home/di/raylib/src", "/home/di/raylib/src/libraylib.a", "", false);
     add_local_dependency("/home/di/redxlib", "/home/di/redxlib/redxlib.a", "/home/di/os/", true);
     add_compilation_flag("CROSS");
-    #ifdef __linux
-        add_linker_flag("-Wl,--start-group");
-    #elif _WIN32
-        add_linker_flag("-fuse-ld=lld");
-    #endif
+    switch (os) {
+        case linux_os: add_linker_flag("-Wl,--start-group"); break;
+        case windows_os: add_linker_flag("-fuse-ld=lld"); break;
+        default: break;
+    }
     
     compiler = "gcc";
     comp();
