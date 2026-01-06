@@ -33,6 +33,7 @@ string link_libs;
 string sources;
 string ofiles;
 string includes;
+string preproc_flags;
 string comp_flags;
 string link_flags;
 
@@ -54,6 +55,7 @@ typedef struct {
 
 clinkedlist_t *sys_deps;
 clinkedlist_t *comp_files;
+clinkedlist_t *preproc_flags_list;
 clinkedlist_t *comp_flags_list;
 clinkedlist_t *link_flags_list;
 
@@ -132,6 +134,10 @@ void include_self(){
     add_dependency(dep_local, ".", "", "", false);   
 }
 
+void add_precomp_flag(char *name){
+    clinkedlist_push_front(preproc_flags_list, name);
+}
+
 void add_compilation_flag(char *name){
     clinkedlist_push_front(comp_flags_list, name);
 }
@@ -197,6 +203,7 @@ void parse_config_kvp(string_slice key, string_slice value, void *context){
 
 void common(){
     sys_deps = clinkedlist_create();
+    preproc_flags_list = clinkedlist_create();
     comp_flags_list = clinkedlist_create();
     link_flags_list = clinkedlist_create();
     comp_files = clinkedlist_create();
@@ -219,6 +226,8 @@ void common(){
     include_self();
     add_local_dependency("~/os/shared", "~/os/shared/libshared.a", "~/os/", true);
     add_local_dependency("~/detour", "~/detour/detour.a", "~/detour/", true);
+    
+    add_compilation_flag("no-format-invalid-specifier");
     
     prepare_output();
 }
@@ -256,10 +265,16 @@ void process_dep(void *data){
     } 
 }
 
+void process_preproc_flags(void *data){
+    char* flag = (char*)data;
+    if (!preproc_flags.data) preproc_flags = string_format(" -D%s",flag);
+    else string_concat_inplace(&preproc_flags, string_format(" -D%s",flag));
+}
+
 void process_comp_flags(void *data){
     char* flag = (char*)data;
-    if (!comp_flags.data) comp_flags = string_format(" -D%s",flag);
-    else string_concat_inplace(&comp_flags, string_format(" -D%s",flag));
+    if (!preproc_flags.data) preproc_flags = string_format(" -W%s",flag);
+    else string_concat_inplace(&preproc_flags, string_format(" -W%s",flag));
 }
 
 void process_link_flags(void *data){
@@ -286,7 +301,7 @@ char buff[BUF_SIZE];
 void lib_compile_individual(void *data){
     comp_file *file = (comp_file*)data;
     memset(buff, 0, BUF_SIZE);
-    string_format_buf(buff, BUF_SIZE, "%s %s %s -c %s -o %s", compiler, comp_flags.data ? comp_flags.data : "", includes.data ? includes.data : "",file->name.data, file->output.data);
+    string_format_buf(buff, BUF_SIZE, "%s %s %s %s -c %s -o %s", compiler, preproc_flags.data ? preproc_flags.data : "", comp_flags.data ? comp_flags.data : "", includes.data ? includes.data : "",file->name.data, file->output.data);
     printf("%s",buff);
     system(buff);
 }
@@ -297,6 +312,7 @@ void comp(){
         return;
     }
     clinkedlist_for_each(sys_deps, process_dep);
+    clinkedlist_for_each(preproc_flags_list, process_preproc_flags);
     clinkedlist_for_each(comp_flags_list, process_comp_flags);
     clinkedlist_for_each(link_flags_list, process_link_flags);
     memset(buff, 0, BUF_SIZE);
@@ -310,7 +326,7 @@ void comp(){
         system(buff);
     } else {
         clinkedlist_for_each(comp_files, process_comp_files);
-        string_format_buf(buff, BUF_SIZE, "%s %s %s %s %s %s -o %s", compiler, comp_flags.data ? comp_flags.data : "", link_flags.data ? link_flags.data : "", includes.data ? includes.data : "",sources.data ? sources.data : "",link_libs.data ? link_libs.data : "", output.data);
+        string_format_buf(buff, BUF_SIZE, "%s %s %s %s %s %s %s -o %s", compiler, preproc_flags.data ? preproc_flags.data : "", comp_flags.data ? comp_flags.data : "", link_flags.data ? link_flags.data : "", includes.data ? includes.data : "",sources.data ? sources.data : "",link_libs.data ? link_libs.data : "", output.data);
         printf("%s",buff);
         system(buff);
     }
@@ -322,7 +338,7 @@ void cross_mod(){
     add_system_lib("m");
     add_local_dependency("~/raylib/src", "~/raylib/src/libraylib.a", "", false);
     add_local_dependency("~/redxlib", "~/redxlib/redxlib.a", "~/os/", true);
-    add_compilation_flag("CROSS");
+    add_precomp_flag("CROSS");
     switch (os) {
         case linux_os: add_linker_flag("-Wl,--start-group"); break;
         case windows_os: add_linker_flag("-fuse-ld=lld"); break;
