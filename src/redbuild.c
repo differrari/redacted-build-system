@@ -2,7 +2,8 @@
 #include "std/string.h"
 #include "std/memory.h"
 #include "data_struct/linked_list.h"
-#include "std/stringview.h"
+#include "std/string_slice.h"
+#include "data/toml.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -93,7 +94,7 @@ void handle_files(const char *directory, const char *name){
     if (strend(name, ".c")) return;
     comp_file *file = malloc(sizeof(comp_file));
     file->name = string_format("%s/%s",directory,name);
-    file->output = string_format("%s/%v.o ", directory, delimited_stringview(name,0,strlen(name)-2));
+    file->output = string_format("%s/%v.o ", directory, make_string_slice(name,0,strlen(name)-2));
     clinkedlist_push_front(comp_files, file);
 }
 
@@ -173,22 +174,52 @@ void prepare_output(){
     }
 }
 
+#define parse_toml(k,dest,func) if (strcmp_case(#k, key,true) == 0) dest.k = func(value,value_len)
+
+void parse_config_kvp(string_slice key, string_slice value, void *context){
+    if (strstart_case("build_type", key.data, true) == key.length){
+        if (strstart_case("bin", value.data, true) == value.length){
+            output_type = package_bin;
+        }
+        else if (strstart_case("pkg", value.data, true) == value.length){
+            output_type = package_red;
+        }
+        else if (strstart_case("lib", value.data, true) == value.length){
+            output_type = package_lib;
+        } else printf("Unexpected output type %v",value);
+        printf("Output type %v",value);
+    }
+    
+    if (strstart_case("ignore", key.data, true) == key.length){
+        print("Should ignore %s",value);
+    }
+}
+
 void common(){
     sys_deps = clinkedlist_create();
     comp_flags_list = clinkedlist_create();
     link_flags_list = clinkedlist_create();
     comp_files = clinkedlist_create();
+    
+    file fd = {};
+    
+    if (!get_current_dir()) { printf("No path"); return; }
+    
+    string s = string_format("%s/build.config",cwd);
+    
+    char *config_file = read_full_file(s.data);
+    
+    read_toml(config_file, parse_config_kvp, 0);
 
-    find_files(".c",&sources);
     if ((homedir = getenv("HOME")) == NULL) {
         homedir = getpwuid(getuid())->pw_dir;
     }
+    find_files(".c",&sources);
 
     include_self();
     add_local_dependency("~/os/shared", "~/os/shared/libshared.a", "~/os/", true);
     add_local_dependency("~/detour", "~/detour/detour.a", "~/detour/", true);
     
-    output_type = package_red;
     prepare_output();
 }
 
