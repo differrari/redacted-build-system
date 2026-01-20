@@ -328,8 +328,9 @@ bool compile(){
 
 int run(){
     string s = string_format("./%s",output);
-    system(s.data);
+    int result = system(s.data);
     string_free(s);
+    return result;
 }
 
 int comp_str(void *a, void *b){
