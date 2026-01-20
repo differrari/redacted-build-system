@@ -323,8 +323,7 @@ bool compile(){
     redbuild_debug("Final compilation command:");
     printl(buf.buffer);
     print("Compiling");
-    system(buf.buffer);
-    return true;
+    return system(buf.buffer) == 0;
 }
 
 int run(){
