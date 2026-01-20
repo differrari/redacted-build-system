@@ -125,6 +125,7 @@ void prepare_output(){
         case package_red: {
             //TODO: %s feel dangerous here
             string d = string_format("mkdir -p %s/%s.red",cwd,output_name);
+            printf("Making %s/%s.red",cwd,output_name);
             system(d.data);
             //TODO: create copy recursive functions for copying directories (ffs)
             string cmd1 = string_format("cp -rf package.info %s.red/package.info",output_name);
@@ -318,7 +319,7 @@ bool compile(){
     clinkedlist_for_each(comp_flags_list, process_comp_flags);
     clinkedlist_for_each(link_flags_list_b, list_strings);
     
-    buffer_write(&buf, "-o %s",output_name);
+    buffer_write(&buf, "-o %s",output);
     redbuild_debug("Final compilation command:");
     printl(buf.buffer);
     print("Compiling");
@@ -327,7 +328,7 @@ bool compile(){
 }
 
 int run(){
-    string s = string_format("./%s",output_name);
+    string s = string_format("./%s",output);
     system(s.data);
     string_free(s);
 }
