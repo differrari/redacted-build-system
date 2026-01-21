@@ -66,7 +66,6 @@ void cross_mod(){
     add_system_lib("m");
     add_local_dependency("~/redlib", "~/redlib/clibshared.a", "~/redlib", true);
     add_local_dependency("~/raylib/src", "~/raylib/src/libraylib.a", "", false);
-    add_local_dependency("~/redxlib", "~/redxlib/redxlib.a", "~/redlib", true);
     add_precomp_flag("CROSS");
     redbuild_debug("Common platform setup done");
     switch (compilation_target) {
