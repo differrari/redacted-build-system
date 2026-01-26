@@ -308,7 +308,7 @@ bool compile(){
     
     redbuild_debug("Platform-specific setup done.");
     redbuild_debug("Beginning compilation process");
-    buf = buffer_create(1024, true, false);
+    buf = buffer_create(1024, buffer_can_grow);
     buffer_write(&buf, chosen_compiler);
     buffer_write_space(&buf);
     
@@ -335,7 +335,7 @@ int run(){
 }
 
 bool cred_compile(){
-    buf = buffer_create(1024, true, false);
+    buf = buffer_create(1024, buffer_can_grow);
     buffer_write_const(&buf, "cred ");
     clinkedlist_for_each(compile_list, list_strings);
     buffer_write(&buf, "-o %s",output_name);
