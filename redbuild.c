@@ -295,8 +295,7 @@ void process_comp_flags(void *data){
     buffer_write_space(&buf);
 }
 
-//TODO: lib support
-bool compile(){
+void prepare_command(){
     redbuild_debug("Setting up output...");
     prepare_output();
     redbuild_debug("Target set. Common setup...");
@@ -308,6 +307,7 @@ bool compile(){
     
     redbuild_debug("Platform-specific setup done.");
     redbuild_debug("Beginning compilation process");
+    if (buf.buffer) buffer_destroy(&buf);
     buf = buffer_create(1024, buffer_can_grow);
     buffer_write(&buf, chosen_compiler);
     buffer_write_space(&buf);
@@ -323,8 +323,38 @@ bool compile(){
     buffer_write(&buf, "-o %s",output);
     redbuild_debug("Final compilation command:");
     printl(buf.buffer);
+}
+
+//TODO: lib support
+bool compile(){
+    prepare_command();
     print("Compiling");
     return system(buf.buffer) == 0;
+}
+
+buffer ccbuf;
+
+void emit_argument(string_slice slice){
+    buffer_write(&ccbuf,"\"%v\"",slice);
+    buffer_write(&ccbuf,",\n");
+}
+
+bool gen_compile_commands(){
+    // prepare_command();
+    ccbuf = buffer_create(buf.buffer_size + 1024, buffer_can_grow);
+    //TODO: use code formatter
+    buffer_write(&ccbuf,"[\{\n\"arguments\": [\n");
+    string_split(buf.buffer,' ',emit_argument);
+    ccbuf.buffer_size -= 2;//TODO: one of my stupidest hacks right here
+    ccbuf.cursor -= 2;
+    buffer_write(&ccbuf,"\n],\n\"directory\": \"");
+    buffer_write(&ccbuf,get_current_dir());
+    buffer_write(&ccbuf,"\",\n\"file\": \"");
+    buffer_write(&ccbuf,get_current_dir());
+    buffer_write(&ccbuf,"/main.c\",\n\"output\": \"");
+    buffer_write(&ccbuf,get_current_dir());
+    buffer_write(&ccbuf,"/%s\"}]",output);
+    write_full_file("compile_commands.json",ccbuf.buffer,ccbuf.buffer_size);
 }
 
 int run(){
