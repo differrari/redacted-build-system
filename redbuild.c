@@ -24,6 +24,13 @@ string output;
 
 char *chosen_compiler = 0;
 
+static target compilation_target;
+static package_type pkg_type;
+
+buffer buf;
+buffer ccbuf;
+char *extension;
+
 // #define DEBUG
 #ifdef DEBUG
 #define redbuild_debug(fmt, ...) print(fmt, ##__VA_ARGS__)
@@ -40,9 +47,6 @@ char *chosen_compiler = 0;
 #else 
 #define native_target target_redacted
 #endif
-
-static target compilation_target;
-static package_type pkg_type;
 
 void free_strings(void *data){
     string *s = (string*)data;
@@ -275,8 +279,6 @@ void add_linker_flag(char *name, bool back){
     push_lit(back ? link_flags_list_b : link_flags_list_f, name);
 }
 
-buffer buf;
-
 void list_strings(void *data){
     string *s = (string*)data;
     buffer_write(&buf, s->data);
@@ -332,8 +334,6 @@ bool compile(){
     return system(buf.buffer) == 0;
 }
 
-buffer ccbuf;
-
 void emit_argument(string_slice slice){
     if (!slice.length) return;
     buffer_write(&ccbuf,"\"%v\"",slice);
@@ -366,21 +366,32 @@ int run(){
 }
 
 bool cred_compile(){
-    buf = buffer_create(1024, buffer_can_grow);
-    buffer_write_const(&buf, "cred ");
+    buffer b = buffer_create(1024, buffer_can_grow);
+    buffer_write_const(&b, "cred ");
     clinkedlist_for_each(compile_list, list_strings);
-    buffer_write(&buf, "-o %s",output_name);
+    buffer_write(&b, "-o %s",output_name);
     redbuild_debug("Final compilation command:");
-    printl(buf.buffer);
-    print("Generating C code");
-    return system(buf.buffer) == 0;
+    printl(b.buffer);
+    redbuild_debug("Generating C code");
+    int ret = system(b.buffer) == 0;
+    buffer_destroy(&b);
+    return ret;
+}
+
+bool quick_cred(const char *input_file, const char *output_file){
+    buffer b = buffer_create(1024, buffer_can_grow);
+    buffer_write(&b, "cred %s -o %s",input_file,output_file);
+    redbuild_debug("Final compilation command:");
+    printl(b.buffer);
+    redbuild_debug("Generating C code");
+    int ret = system(b.buffer) == 0;
+    buffer_destroy(&b);
+    return ret;
 }
 
 int comp_str(void *a, void *b){
     return strcmp(((string*)a)->data,(char*)b);
 }
-
-char *extension;
 
 void handle_files(const char *directory, const char *name){
     if (strend(name, extension)) return;

@@ -32,6 +32,7 @@ bool source(const char *name);
 bool compile();
 bool gen_compile_commands();
 bool cred_compile();
+bool quick_cred(const char *input_file, const char *output_file);
 int run();
 void install(const char *location);
 
